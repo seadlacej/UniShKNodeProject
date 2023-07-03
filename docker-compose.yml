@@ -1,0 +1,30 @@
+version: "3.9"
+
+services:
+  node_app:
+    container_name: node_app
+    build: .
+    image: node_app_image
+    ports:
+      - "3000:3000"
+    environment:
+      - PG_DB=pg_node_db
+      - PG_USER=admin
+      - PG_PASSWORD=admin
+      - PG_HOST=pg_db
+      - PG_PORT=5432
+    depends_on:
+      - pg_db
+
+  pg_db:
+    container_name: pg_db
+    image: postgres:12
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=pg_node_db
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=admin
+    volumes:
+      - ./core/start_scripts.sql:/docker-entrypoint-initdb.d/start_scripts.sql
+

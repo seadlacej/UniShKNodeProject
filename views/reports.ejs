@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Report List</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+     crossorigin=""/>
+     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+     crossorigin=""></script>
+     <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f7f7f7;
+        color: #333;
+        max-width: 80%;
+        margin: 0 auto;
+      }
+    
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+    
+      table th,
+      table td {
+        padding: 8px;
+        text-align: left;
+        border-bottom: 1px solid #ddd;
+      }
+    
+      form {
+        flex-direction: column;
+        max-width: 80%;
+        margin: 20px auto;
+        padding: 20px;
+        width: 80%;
+      }
+    
+      #map {
+        display: flex;
+        flex-direction: column;
+        max-width: 80%;
+        margin: 20px auto;
+        padding: 20px;
+        height: 250px;
+        width: 80%;
+      }
+    
+      /* Adjustments */
+      select,
+      input[type="text"],
+      #geo_coordinates_address,
+      button[type="submit"] {
+        margin-right: 5px;
+        padding: 6px 10px;
+        border-radius: 4px;
+        border: 1px solid #ccc;
+        font-size: 14px;
+        color: #333;
+        background-color: #fff;
+      }
+    
+      button[type="submit"] {
+        background-color: #333;
+        color: #fff;
+        cursor: pointer;
+      }
+    
+      button.redirect-button {
+        margin-right: 10px;
+        padding: 6px 10px;
+        border-radius: 4px;
+        border: 1px solid #ccc;
+        font-size: 14px;
+        color: #fff;
+        background-color: #333;
+      }
+    
+      td:last-child {
+        white-space: nowrap;
+      }
+    
+      td:last-child form {
+        display: inline;
+      }
+    </style>
+    
+  <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+</head>
+<body>
+  <form action="/reports/" method="POST">
+    <select name="type" id="type">
+      <option value="0">NONE</option>
+      <option value="1">Pothole</option>
+      <option value="2">Obstacle</option>
+      <option value="3">Road Closure</option>
+    </select>
+    <input type="hidden" id="geo_coordinates" name="geo_coordinates" placeholder="Geo Coordinates">
+    <input type="input" id="geo_coordinates_address" name="geo_coordinates_address" placeholder="Geo Coordinates" value="">
+    <input type="text" name="description" placeholder="Description">
+    <button type="submit">Add Report</button>
+  </form>
+  <div id="map"></div>
+  <table>
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+        <th>Created</th>
+        <th>Updated</th>
+        <th>Status</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% reports.forEach(function(report) { %>
+        <tr>
+          <td><% if (report.type === '1') { %>
+            Pothole
+          <% } else if (report.type === '2') { %>
+            Obstacle
+          <% } else if (report.type === '3') { %>
+            Road Closure
+          <% } %></td>
+          <td><%= report.description %></td>
+          <td><%= report.created %></td>
+          <td><%= report.updated %></td>
+          <td><% if (report.status === 1) { %>
+            PENDING
+          <% } else if (report.status === 2) { %>
+            ACCEPTED
+          <% } else if (report.status === 99) { %>
+            DECLINED
+          <% } %></td>
+          <td>
+            <button onclick="window.location.href='/reports/<%= report.id %>'" class="redirect-button">Go to Report Details</button>
+            <form action="/reports/remove" method="POST">
+              <input type="hidden" name="id" value="<%= report.id %>">
+              <button type="submit">Remove</button>
+            </form>
+          </td>
+        </tr>
+      <% }); %>
+    </tbody>
+  </table>
+</body>
+<script>
+  var map = L.map('map').setView([51.505, -0.09], 13);
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+  }).addTo(map);
+
+
+  navigator.geolocation.watchPosition(success, error);
+  let marker, circle, zoomed;
+  function success(pos) {
+      let geoCoordinatesInput = document.getElementById('geo_coordinates');
+      const accuracy = pos.coords.accuracy; // Accuracy in metres
+
+      let lat, lng;
+      if (geoCoordinatesInput.value !== "" && geoCoordinatesInput.value !== null && geoCoordinatesInput.value !== undefined) {
+            const coordinates = geoCoordinatesInput.value.split(',');
+            lat = coordinates[0] ? parseFloat(coordinates[0].trim()) : '';
+            lng = coordinates[1] ? parseFloat(coordinates[1].trim()) : '';
+            geoCoordinatesInput.value = lat + ', ' + lng;
+        } else {
+            lat = pos.coords.latitude;
+            lng = pos.coords.longitude;
+            geoCoordinatesInput.value = lat + ', ' + lng;
+        }
+    
+      if (marker) {
+          map.removeLayer(marker);
+      }
+
+      marker = L.marker([lat, lng]).addTo(map);
+
+      map.on('click', function(e) {
+          lat = e.latlng.lat;
+          lng = e.latlng.lng;
+
+          // Update marker position
+          marker.setLatLng(e.latlng);
+
+          // Store the coordinates in the input field
+          geoCoordinatesInput.value = lat + ', ' + lng;
+          getAddressFromCoordinate(lat, lng);
+      });
+      
+      if (zoomed) {
+          zoomed = map.setView([lat, lng]);
+      }
+      
+      map.setView([lat, lng]);
+  }
+
+  function error(err) {
+      if (err.code === 1) {
+          alert("Please allow geolocation access");
+          // Runs if user refuses access
+      } else {
+          alert("Cannot get current location");
+          // Runs if there was a technical problem.
+      }
+  }
+
+  function isValidCoordinates(lat, lng) {
+      // Regular expressions for latitude and longitude patterns
+      const latPattern = /^[-]?([0-9]{1,2}\.[0-9]{1,14})$/;
+      const lngPattern = /^[-]?([0-9]{1,3}\.[0-9]{1,14})$/;
+
+      return latPattern.test(lat) && lngPattern.test(lng);
+  }
+
+  function getAddressFromCoordinate(lat, lng) {
+        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
+            .then(response => response.json())
+            .then(data => {
+                const address = data.display_name;
+                const addressElement = document.getElementById('geo_coordinates_address');
+                addressElement.value = address;
+            })
+            .catch(error => {
+                console.log('Error:', error);
+            });
+    }
+</script>
+</html>
