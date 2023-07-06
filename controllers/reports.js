@@ -1,24 +1,37 @@
 const Sequelize = require('sequelize');
 const Reports = require('../models/reports');
 const {REPORT_STATUS_ACCEPTED, REPORT_STATUS_DELETED, REPORT_STATUS_PENDING, isAdminUser} = require('../core/constants');
+const { convertUnixTimestamp, getCurrentUnixTime } = require('../core/utils');
+
+const formatUnixDateTime = (reports) => {
+  return reports.map(report => {
+    report.created = convertUnixTimestamp(report.created);
+    report.updated = convertUnixTimestamp(report.updated);
+  });
+}
 
 const getMyReports = (req, res, next) => {
   Reports.findAll({
+    order: [['id', 'ASC']],
     where: {
       report_user_id: req.cookies.userData.id,
     }
   })
   .then(reports => {
       // res.status(200).json({ reports: reports });
+      formatUnixDateTime(reports);
       res.render('reports', { reports: reports });
   })
   .catch(err => console.log(err));
 };
 
 const getAllReports = (req, res, next) => {
-  Reports.findAll()
+  Reports.findAll({
+    order: [['id', 'ASC']]
+  })
   .then(reports => {
       // res.status(200).json({ reports: reports });
+      formatUnixDateTime(reports);
       res.render('reports', { reports: reports });
   })
   .catch(err => console.log(err));
@@ -44,7 +57,7 @@ exports.getReport = (req, res, next) => {
               return res.status(401).json({ message: 'You are not allowed to see this report!' });
             }
             // res.status(200).json({ report: report });
-            res.render('report', { report: report });
+            res.render('report', { report: report, userRole: req.cookies.userData.role });
         })
         .catch(err => console.log(err));
 }
@@ -53,8 +66,8 @@ exports.createReport = (req, res, next) => {
   const { type, geo_coordinates, description } = req.body
   const report_user_id = req.cookies.userData.id;
   const status = REPORT_STATUS_PENDING;
-  const created = Date.now();
-  const updated = Date.now();
+  const created = getCurrentUnixTime();
+  const updated = getCurrentUnixTime();
   Reports.create({
     type: type,
     geo_coordinates: geo_coordinates,
@@ -79,9 +92,8 @@ exports.createReport = (req, res, next) => {
 
 exports.updateReport = (req, res, next) => {
   const id = req.params.id;
-  const { type, geo_coordinates, description } = req.body;
-  const updatedStatus = REPORT_STATUS_PENDING;
-  const updated = Date.now();
+  const { type, geo_coordinates, description, status } = req.body;
+  const updated = getCurrentUnixTime();
   Reports.findByPk(id)
     .then(report => {
       if (!report) {
@@ -93,7 +105,7 @@ exports.updateReport = (req, res, next) => {
       report.type = type;
       report.geo_coordinates = geo_coordinates;
       report.description = description;
-      report.status = updatedStatus;
+      report.status = status;
       report.updated = updated;
       return report.save();
     })
@@ -106,7 +118,7 @@ exports.updateReport = (req, res, next) => {
 
 exports.deleteReport = (req, res, next) => {
   const id = req.body.id;
-  const updated = Date.now();
+  const updated = getCurrentUnixTime();
   Reports.findByPk(id)
     .then(report => {
       if (!report) {

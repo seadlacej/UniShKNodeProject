@@ -25,6 +25,7 @@
     }
 
     input[type="text"],
+    select,
     input[type="email"],
     button {
       padding: 10px;
@@ -70,8 +71,11 @@
 
     a {
       display: block;
-      text-align: center;
       margin-bottom: 20px;
+    }
+
+    .links {
+      float: left;
     }
   </style>
 </head>
@@ -84,6 +88,10 @@
       <input type="text" name="firstname" placeholder="First Name">
       <input type="text" name="lastname" placeholder="Last Name">
       <input type="email" name="email" placeholder="Email">
+      <select name="role" id="role">
+        <option value="1">Admin</option>
+        <option value="2" selected>Regular</option>
+      </select>
       <button type="submit">Add User</button>
     </form>
 
@@ -116,6 +124,7 @@
       </tbody>
     </table>
 
+    <h3>Detailed reports:</h1>
     <div class="links">
     <a href="/users/with_highest_report_number">Stats of users with the highest number of reports</a>
     <a href="/users/with_highest_report_rejected">Stats of users with the highest number of rejected reports</a>

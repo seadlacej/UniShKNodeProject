@@ -3,17 +3,19 @@ const express = require('express');
 const bodyparser = require('body-parser');
 const fs = require('fs');
 const sequelize = require('./core/database');
-const {HOST, PORT, USER_STATUS_DELETED} = require('./core/constants');
+const {HOST, PORT, USER_STATUS_DELETED, REGULAR_USER} = require('./core/constants');
 const methodOverride = require('method-override');
 const jwt = require('jsonwebtoken');
 const Users = require('./models/users');
 const cookieParser = require('cookie-parser');
+const ejs = require('ejs');
+const { use } = require('./routes/users');
 
 const app = express();
 app.use(cookieParser());
 app.set('view engine', 'ejs');
 const JWT_SECRET_KEY = process.env.JWT_SECRET_KEY;
-const verifyAndDecodeJWT = (req, res, next) => {
+const verifyAndDecodeJWT = async (req, res, next) => {
   if (req.headers['authorization'] || req.cookies.token) {
       let splittedValue = req.headers['authorization'] ? req.headers['authorization'].split(' ') : [];
       if (splittedValue.length == 2 || req.cookies.token) {
@@ -23,10 +25,16 @@ const verifyAndDecodeJWT = (req, res, next) => {
           } 
           try {
               let out = jwt.verify(jwtToken, JWT_SECRET_KEY);
-              req.token = out;
-              next();
+              if (req.cookies.userData && out.email === req.cookies.userData.email) {
+                req.token = out;
+                next();
+              } else {
+                res.clearCookie('userData');
+                res.clearCookie('token');
+                throw new Error('Invalid auth. Email does not exist.');
+              }
           } catch(error) {
-              next('invalid auth');
+              next(error);
           }
       } else {
           next('invalid auth');
@@ -44,12 +52,14 @@ app.use((req, res, next) => {
 });
 
 app.get('/', verifyAndDecodeJWT, (req, res, next) => {
+  const userRole = req.cookies.userData ? req.cookies.userData.role : REGULAR_USER;
     fs.readFile('homepage.html', 'utf8', (err, data) => {
         if (err) {
           console.error('Error reading file:', err);
           return;
         }
-        res.send(data);
+        const renderedHTML = ejs.render(data, { userRole });
+        res.send(renderedHTML);
       }); 
 });
 
@@ -72,7 +82,9 @@ app.post('/login', async (req, res) => {
     },
   });
   res.cookie('token', token);
-  res.cookie('userData', user.dataValues)
+  if (user) {
+    res.cookie('userData', user.dataValues)
+  }
   res.redirect('/')
 });
 

@@ -83,9 +83,11 @@
         
         <label for="status">Status:</label>
         <select name="status" id="status">
-          <option value="1" <% if (report.type === '1') { %>selected<% } %>>PENDING</option>
-          <option value="2" <% if (report.type === '2') { %>selected<% } %>>ACCEPTED</option>
-          <option value="99" <% if (report.type === '99') { %>selected<% } %>>DECLINED</option>
+          <option value="1" <% if (report.type === 1) { %>selected<% } %>>PENDING</option>
+          <% if (userRole === 1) { %>
+          <option value="2" <% if (report.type === 2) { %>selected<% } %>>ACCEPTED</option>
+          <% } %>
+          <option value="99" <% if (report.type === 99) { %>selected<% } %>>DECLINED</option>
         </select>
     
         <button type="submit">Update Report</button>

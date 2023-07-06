@@ -55,7 +55,9 @@
       <h2>Page is under construction...</h2>
     </div>
     <div class="center">
+      <% if (userRole === 1) { %>
       <a href="/users" class="button">Go To Users</a>
+      <% } %>
       <a href="/reports" class="button">Go To Reports</a>
       <a href="/logout" class="button">Logout</a>
     </div>

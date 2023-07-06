@@ -38,4 +38,4 @@ VALUES
 
 INSERT INTO reports (type, geo_coordinates, description, created, updated, status, report_user_id)
 VALUES
-    ('pothole', 'geo_coordinates test', 'test desc', '1688290467', '1688290467', 1, 2 );
+    (1, '42.068410320563785, 19.510605742205033', 'test desc', '1688290467', '1688290467', 1, 2 );

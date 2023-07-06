@@ -2,6 +2,7 @@ const Sequelize = require('sequelize');
 const Users = require('../models/users');
 const Reports = require('../models/reports');
 const {USER_STATUS_ACTIVE, USER_STATUS_DELETED, REGULAR_USER, isAdminUser, REPORT_STATUS_DELETED, REPORT_STATUS_ACCEPTED} = require('../core/constants');
+const { getCurrentUnixTime } = require('../core/utils');
 
 Users.hasMany(Reports, { foreignKey: 'report_user_id' });
 Reports.belongsTo(Users, { foreignKey: 'report_user_id' });
@@ -12,6 +13,7 @@ Reports.belongsTo(Users, { foreignKey: 'report_user_id' });
 exports.getUsers = (req, res, next) => {
   if (isAdminUser(req)) {
     Users.findAll({
+      order: [['id', 'ASC']],
       where: {
         status: {
           [Sequelize.Op.ne]: USER_STATUS_DELETED
@@ -49,11 +51,10 @@ exports.getUser = (req, res, next) => {
 //create user
 exports.createUser = (req, res, next) => {
   if (isAdminUser(req)) {
-    const { username, firstname, lastname, email } = req.body
+    const { username, firstname, lastname, email, role } = req.body
     const status = USER_STATUS_ACTIVE;
-    const created = Date.now();
-    const updated = Date.now();
-    const role = REGULAR_USER;
+    const created = getCurrentUnixTime();
+    const updated = getCurrentUnixTime();
     Users.create({
       username: username,
       firstname: firstname,
@@ -85,7 +86,7 @@ exports.updateUser = (req, res, next) => {
   if (isAdminUser(req)) {
   const id = req.params.id;
   const { username, firstname, lastname, email } = req.body;
-  const updated = Date.now();
+  const updated = getCurrentUnixTime();
   Users.findByPk(id)
     .then(user => {
       if (!user) {
@@ -113,7 +114,7 @@ exports.updateUser = (req, res, next) => {
 exports.deleteUser = (req, res, next) => {
   if (isAdminUser(req)) {
   const id = req.body.id;
-  const updated = Date.now();
+  const updated = getCurrentUnixTime();
   Users.findByPk(id)
     .then(user => {
       if (!user) {
