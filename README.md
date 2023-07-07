@@ -21,12 +21,4 @@ In order to start the project just run the command "docker-compose up -d" on roo
 - Docker
 - PostGreSQL
 - JWT
-- NPM Modules
-The most import npm modules used are as follows:
-"ejs": "^3.1.9",
-"express": "^4.18.2",
-"fs": "^0.0.1-security",
-"jsonwebtoken": "^9.0.0",
-"leaflet": "^1.9.4",
-"pg": "^8.11.1",
-"sequelize": "^6.32.1"
+- NPM Modules: "ejs", "express", "fs", "jsonwebtoken", "leaflet", "pg", "sequelize" etc.
